@@ -9,8 +9,8 @@ services:
       PUID: 1000
       PGID: 1000
       TZ: Europe/Warsaw
-      PASSWORD: KrzyrzaK1410#
-      SUDO_PASSWORD: KrzyrzaK1410#
+      PASSWORD: ${CODESERVER_PASSWORD}
+      SUDO_PASSWORD: ${CODESERVER_PASSWORD}
     volumes:
       - codeserver_data:/config
       - /opt/stacks:/opt/stacks

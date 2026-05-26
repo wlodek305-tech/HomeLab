@@ -11,7 +11,7 @@ services:
       - "8080:80"
     environment:
       TZ: Europe/Warsaw
-      WEBPASSWORD: "nowehaslo"
+      WEBPASSWORD: ${PIHOLE_PASSWORD}
     volumes:
       - pihole_data:/etc/pihole
       - dnsmasq_data:/etc/dnsmasq.d
