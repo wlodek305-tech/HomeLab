@@ -1,0 +1,23 @@
+services:
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - homepage_data:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/volumes/homepage_homepage_data/_data/images:/app/public/images
+    environment:
+      HOMEPAGE_ALLOWED_HOSTS: "localhost:3001,100.114.55.112:3001,home.lab,100.114.55.112"
+
+    networks:
+      - lab
+
+volumes:
+  homepage_data:
+
+networks:
+  lab:
+    external: true

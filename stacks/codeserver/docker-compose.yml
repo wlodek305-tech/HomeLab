@@ -1,0 +1,26 @@
+services:
+  codeserver:
+    image: lscr.io/linuxserver/code-server:latest
+    container_name: codeserver
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    environment:
+      PUID: 1000
+      PGID: 1000
+      TZ: Europe/Warsaw
+      PASSWORD: KrzyrzaK1410#
+      SUDO_PASSWORD: KrzyrzaK1410#
+    volumes:
+      - codeserver_data:/config
+      - /opt/stacks:/opt/stacks
+      - /var/lib/docker/volumes/homepage_homepage_data/_data:/homepage-config
+    networks:
+      - lab
+
+volumes:
+  codeserver_data:
+
+networks:
+  lab:
+    external: true
