@@ -1,0 +1,255 @@
+# 🛠️ HomeLab — Komendy konfiguracyjne
+
+Dokumentacja komend użytych przy budowie i konfiguracji home labu.
+
+---
+
+## 📦 Docker
+
+### Instalacja Docker
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+### Sieć Docker
+```bash
+# Tworzenie sieci lab (external — współdzielona między stackami)
+docker network create lab
+```
+
+### Zarządzanie kontenerami
+```bash
+# Lista wszystkich kontenerów (włącznie z zatrzymanymi)
+docker ps -a
+
+# Lista działających kontenerów z zużyciem RAM
+docker stats --no-stream --format "{{.Name}}\t{{.MemUsage}}"
+
+# Logi kontenera (ostatnie 20 linii)
+docker logs <nazwa_kontenera> --tail 20
+
+# Restart kontenera
+docker restart <nazwa_kontenera>
+```
+
+### Zarządzanie stackami
+```bash
+# Uruchomienie stacka
+cd /opt/stacks/<nazwa_stacka>
+docker compose up -d
+
+# Zatrzymanie stacka
+docker compose down
+
+# Podgląd logów stacka
+docker compose logs -f
+```
+
+### Konfiguracja DNS dla Dockera
+```bash
+# Plik /etc/docker/daemon.json
+{
+  "dns": ["8.8.8.8"]
+}
+
+# Restart Docker po zmianie
+systemctl restart docker
+```
+
+---
+
+## 🌐 Sieć
+
+### Statyczny IP przez NetworkManager
+```bash
+# Sprawdzenie interfejsów sieciowych
+ip a
+
+# Ustawienie statycznego IP
+nmcli con mod <nazwa_połączenia> ipv4.addresses 192.168.0.232/24
+nmcli con mod <nazwa_połączenia> ipv4.gateway 192.168.0.1
+nmcli con mod <nazwa_połączenia> ipv4.dns 192.168.0.232
+nmcli con mod <nazwa_połączenia> ipv4.method manual
+nmcli con up <nazwa_połączenia>
+```
+
+### Tailscale
+```bash
+# Instalacja Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+
+# Uruchomienie i logowanie
+tailscale up
+
+# Wyłączenie DNS Tailscale (żeby nie nadpisywał Pi-hole)
+tailscale set --accept-dns=false
+
+# Sprawdzenie statusu
+tailscale status
+
+# Adres Tailscale serwera
+tailscale ip -4
+```
+
+### /etc/hosts
+```bash
+# Edycja pliku hosts
+nano /etc/hosts
+
+# Wpisy dla domen .lab
+127.0.0.1 portainer.lab pihole.lab grafana.lab prometheus.lab npm.lab home.lab code.lab
+```
+
+---
+
+## 🔒 Certyfikaty SSL (Tailscale)
+
+```bash
+# Generowanie certyfikatu Tailscale
+tailscale cert --cert-file /opt/certs/labo.tail24d7d0.ts.net.crt \
+               --key-file /opt/certs/labo.tail24d7d0.ts.net.key \
+               labo.tail24d7d0.ts.net
+
+# Sprawdzenie certyfikatu
+openssl x509 -in /opt/certs/labo.tail24d7d0.ts.net.crt -noout -dates
+```
+
+---
+
+## 🖥️ System
+
+### Informacje o sprzęcie
+```bash
+# Informacje o RAM (sloty, typ, pojemność)
+sudo dmidecode -t memory | grep -E "Size|Speed|Type|Slots"
+
+# Użycie dysku
+df -h
+
+# Użycie RAM
+free -h
+
+# Informacje o CPU
+lscpu
+```
+
+### Zarządzanie usługami
+```bash
+# Status usługi
+systemctl status <nazwa_usługi>
+
+# Restart usługi
+systemctl restart <nazwa_usługi>
+
+# Włączenie usługi przy starcie
+systemctl enable <nazwa_usługi>
+```
+
+---
+
+## 🔧 Git
+
+### Konfiguracja
+```bash
+# Ustawienie danych użytkownika
+git config --global user.name "Dominik Włotkowski"
+git config --global user.email "wlodek305@gmail.com"
+
+# Sprawdzenie konfiguracji
+git config --global --list
+
+# Zapisywanie tokena GitHub (żeby nie wpisywać za każdym razem)
+git config --global credential.helper store
+
+# Poprawienie URL repo (username zamiast pełnego imienia)
+git remote set-url origin https://wlodek305-tech@github.com/wlodek305-tech/HomeLab.git
+```
+
+### Podstawowy workflow
+```bash
+# Klonowanie repo
+git clone https://github.com/wlodek305-tech/HomeLab.git
+
+# Sprawdzenie statusu
+git status
+
+# Dodanie plików do commita
+git add .
+# lub konkretny plik
+git add <nazwa_pliku>
+
+# Commit
+git commit -m "Opis zmian"
+
+# Push na GitHub
+git push
+
+# Wycofanie pliku z staged (przed commitem)
+git restore --staged <nazwa_pliku>
+```
+
+### Bezpieczeństwo
+```bash
+# Sprawdzenie czy w plikach yml nie ma haseł przed commitem
+grep -r "password\|PASSWORD\|secret\|token" ~/HomeLab/stacks/ --include="*.yml"
+
+# Sprawdzenie czy nie ma certyfikatów/kluczy
+find . -name "*.crt" -o -name "*.key" -o -name "*.pem"
+```
+
+### .gitignore
+```bash
+# Tworzenie .gitignore
+cat > .gitignore << 'GITIGNORE'
+*.crt
+*.key
+*.pem
+*.env
+*secret*
+*password*
+*.deb
+GITIGNORE
+```
+
+---
+
+## 🔐 Zmienne środowiskowe (bezpieczeństwo haseł)
+
+Zamiast wpisywać hasła w `docker-compose.yml`, używaj plików `.env`:
+
+```bash
+# Tworzenie pliku .env dla stacka
+cat > /opt/stacks/codeserver/.env << 'ENV'
+CODESERVER_PASSWORD=twoje_haslo
+ENV
+
+# W docker-compose.yml odwołujesz się przez:
+# PASSWORD: ${CODESERVER_PASSWORD}
+```
+
+Plik `.env` jest w `.gitignore` — nie trafi na GitHub.
+
+---
+
+## 🔍 Diagnostyka
+
+```bash
+# Sprawdzenie portów nasłuchujących
+ss -tulnp
+
+# Sprawdzenie czy port jest otwarty
+nc -zv 192.168.0.232 9000
+
+# Logi systemowe
+journalctl -u docker -f
+
+# Sprawdzenie DNS (Pi-hole)
+dig portainer.lab @192.168.0.232
+
+# Ping przez Tailscale
+ping 100.114.55.112
+```
+
+---
+
+> Dokument aktualizowany na bieżąco wraz z rozwojem labu.
